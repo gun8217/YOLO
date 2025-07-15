@@ -1,4 +1,4 @@
-# EDSR	성능 우수, Residual Block 사용	⭐⭐⭐ 18,000~45,000쌍 (50, 10, 100)
+# EDSR	성능 우수, Residual Block 사용	⭐⭐⭐ 18,000~45,000쌍 (36, 7, 72)
 
 import torch
 import torch.nn as nn
