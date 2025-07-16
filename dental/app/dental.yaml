@@ -1,6 +1,7 @@
-train: ../data/images/train
-val: ../data/images/val
-test: ../data/images/test  # 선택사항
+path: C:/Users/602-18/YOLO/dental/data
+
+train: images/train
+val: images/val
 
 nc: 2
 names: ['cavity', 'normal']
