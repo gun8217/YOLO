@@ -1,103 +1,68 @@
-# 1. 라이브러리 임포트
+from sklearn.datasets import make_blobs
+from torch import FloatTensor, LongTensor  # LongTensor : torch.int64
+from torch.utils.data import TensorDataset, DataLoader
+
 import torch
 import torch.nn as nn
-import torch.optim as optim
+from torch.optim import SGD
+
+from model04 import MLP
+
+n_samples = 100
+n_classes = 4
+batch_size = 8
+
+X, y = make_blobs(n_samples=n_samples, centers=n_classes,
+                  n_features=2, cluster_std=0.7, random_state=1)
+
+dataset = TensorDataset(FloatTensor(X), LongTensor(y))
+dataloader = DataLoader(dataset, batch_size=batch_size)
+
+BATCH_SIZE = 8
+LR = 0.01
+EPOCHS = 100
+
+if torch.cuda.is_available(): DEVICE = 'cuda'
+elif torch.backends.mps.is_available(): DEVICE = 'mps'
+else: DEVICE = 'cpu'
+
+model = MLP().to(DEVICE)
+loss_function = nn.CrossEntropyLoss()
+optimizer = SGD(model.parameters(), lr=LR)
+
+losses = []
+for epoch in range(EPOCHS):
+    epoch_loss = 0.
+    for X_, y_ in dataloader:
+        X_, y_ = X_.to(DEVICE), y_.to(DEVICE)
+        
+        pred = model(X_)
+        loss = loss_function(pred, y_)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        epoch_loss += loss.item() * len(X_)
+        
+    epoch_loss /= n_samples
+    losses.append(epoch_loss)
+
+    if epoch % 10 == 0:
+        print(f"Epoch {epoch}: Train Loss = {loss.item():.4f}, Val Loss = {epoch_loss.item():.4f}")
+    
+    # print(f"Epoch: {epoch + 1}")
+    # print(f"Loss: {epoch_loss:.4f}")
+
+
 import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.model_selection import train_test_split
 
-# 2. 데이터 생성
-np.random.seed(42)
-x_np = np.linspace(-5, 5, 200)
-y_np = 3 * x_np**2 + 2 + np.random.normal(0, 5, size=x_np.shape)
+fig, ax = plt.subplots(figsize=(10, 4))
+ax.plot(losses)
 
-# 3. 훈련/검증 데이터 분리 (Overfitting 감지를 위해)
-x_train_np, x_val_np, y_train_np, y_val_np = train_test_split(x_np, y_np, test_size=0.2, random_state=42)
+ax.set_xlabel("Epoch", fontsize=15)
+ax.set_ylabel("Cross Entropy Loss", fontsize=15)
+ax.tick_params(labelsize=10)
 
-x_train = torch.tensor(x_train_np, dtype=torch.float32).unsqueeze(1)
-y_train = torch.tensor(y_train_np, dtype=torch.float32).unsqueeze(1)
-x_val = torch.tensor(x_val_np, dtype=torch.float32).unsqueeze(1)
-y_val = torch.tensor(y_val_np, dtype=torch.float32).unsqueeze(1)
-
-# 4. 모델 정의
-model = nn.Sequential(
-    nn.Linear(1, 32),
-    nn.ReLU(),          # 위의 레이어에 포함된 각 노드에 연결됨
-    nn.Linear(32, 32),
-    nn.ReLU(),
-    nn.Linear(32, 1)
-)
-
-# 5. 손실 함수, 옵티마이저
-criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.01)
-
-# 6. 학습
-epochs = 1700
-train_losses = []
-val_losses = []
-
-for epoch in range(epochs):
-    model.train()
-    optimizer.zero_grad()      # 경사(미분값) 초기화
-    y_pred = model(x_train)    # 학습용 데이터 전달
-    loss = criterion(y_pred, y_train)
-    loss.backward()
-    optimizer.step()
-    train_losses.append(loss.item())
-
-    # 검증 손실 계산
-    model.eval()
-    with torch.no_grad():
-        val_pred = model(x_val)
-        val_loss = criterion(val_pred, y_val)
-        val_losses.append(val_loss.item())
-
-    if epoch % 100 == 0:
-        print(f"Epoch {epoch}: Train Loss = {loss.item():.4f}, Val Loss = {val_loss.item():.4f}")
-
-# 7. Loss 시각화 (Overfitting 감지)
-plt.plot(train_losses, label="Train Loss")
-plt.plot(val_losses, label="Validation Loss")
-plt.title("Training vs Validation Loss")
-plt.xlabel("Epoch")
-plt.ylabel("MSE Loss")
-plt.legend()
-plt.grid()
+fig.tight_layout()
 plt.show()
-
-# 8. 모델 저장
-torch.save(model.state_dict(), "quadratic_model.pth")
-print(" 모델이 'quadratic_model.pth'로 저장되었습니다.")
-
-# 9. 모델 새로 로드
-loaded_model = nn.Sequential(
-    nn.Linear(1, 32),
-    nn.ReLU(),
-    nn.Linear(32, 32),
-    nn.ReLU(),
-    nn.Linear(32, 1)
-)
-loaded_model.load_state_dict(torch.load("quadratic_model.pth"))
-loaded_model.eval()
-print(" 저장된 모델을 성공적으로 로드했습니다.")
-
-# 10. 예측 시각화
-x_test = torch.linspace(-5, 5, 100).unsqueeze(1) # 2번째 차원 추가
-with torch.no_grad():
-    y_test_pred = loaded_model(x_test).squeeze().numpy()
-
-plt.scatter(x_np, y_np, label='Original Data', alpha=0.6)
-plt.plot(x_test.squeeze().numpy(), y_test_pred, color='red', label='Model Prediction')
-plt.title("Model Fit to Quadratic Data")
-plt.xlabel("x")
-plt.ylabel("y")
-plt.legend()
-plt.grid()
-plt.show()
-
-# 11. 모델 사용 예제
-x_input = torch.tensor([[4.0]])
-with torch.no_grad():
-    y_output = loaded_model(x_input)
-print(f" Predicted y for x=4.0: {y_output.item():.4f}")
