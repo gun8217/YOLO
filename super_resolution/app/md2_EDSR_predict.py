@@ -7,20 +7,20 @@ import numpy as np
 import re
 import cv2
 
-from md1_ESPCN import ESPCN  # ESPCN 모델 정의 import
+from md2_EDSR import EDSR  # EDSR 모델 정의 import
 
 # ────────────────────────────────
 # 하이퍼파라미터 및 경로 설정
 SCALE = 3
 BASE_DIR = Path(__file__).parent.parent
-MODEL_PATH = BASE_DIR / 'model/espcn.pth'
+MODEL_PATH = BASE_DIR / 'model/edsr.pth'
 TEST_IMG_DIR = BASE_DIR / 'data/train_LR_gen'
 target_prefix = "181모7661"  # 테스트할 번호판 시작 문자열
 
 # ────────────────────────────────
 # 장치 설정 및 모델 로딩
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = ESPCN(scale_factor=SCALE)
+model = EDSR(scale_factor=SCALE)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 model.to(device)
 model.eval()
@@ -37,24 +37,50 @@ ocr_correction = {
     'N': '7',
 }
 
+# 한글 유사 문자 보정 매핑 테이블
+hangul_correction = {
+    '오': '모',
+    '모': '오',  # 필요시 상호 변환도 가능
+}
+
 def apply_correction(text):
-    return ''.join(ocr_correction.get(ch, ch) for ch in text.upper())
+    # 숫자/영문 OCR 보정
+    corrected = ''.join(ocr_correction.get(ch, ch) for ch in text.upper())
+    # 한글 OCR 보정
+    corrected = ''.join(hangul_correction.get(ch, ch) for ch in corrected)
+    return corrected
 
 # ────────────────────────────────
 # 번호판 문자열 보정 함수
 def correct_plate(texts):
     merged = ''.join(texts).replace(" ", "").replace("/", "")
-    merged = apply_correction(merged)
+    
+    # 숫자/영문 OCR 보정
+    merged = ''.join(ocr_correction.get(ch, ch) for ch in merged.upper())
 
-    # 정규식 패턴 매칭
-    match = re.search(r"(\d{3})([가-힣])(\d{4})", merged)
-    if match:
-        return match.group(1) + match.group(2) + " " + match.group(3)
+    # 중간 한글 위치 보정: ambiguous한 경우 후보군 탐색
+    pattern = r"(\d{3})([가-힣])(\d{4})"
 
-    # 예외적인 패턴 보정 (예: 중간 한글 '나' 추정)
-    if re.match(r"\d{3}4\d{4}", merged):
-        return merged[:3] + '나' + " " + merged[4:]
-
+    candidates = []
+    # 먼저 원래 텍스트로 시도
+    if re.match(pattern, merged):
+        candidates.append(merged)
+    
+    # ambiguous한 경우 오/모 양쪽 대입
+    if len(merged) == 8:
+        for h in ['오', '모']:
+            variant = merged[:3] + h + merged[3:]
+            if re.match(pattern, variant):
+                candidates.append(variant)
+    
+    # 중복 제거 및 우선순위 부여
+    candidates = list(dict.fromkeys(candidates))  # 순서 유지하면서 중복 제거
+    
+    # 최종 선택
+    if candidates:
+        best = candidates[0]
+        return best[:4] + " " + best[4:]
+    
     return merged
 
 # ────────────────────────────────
