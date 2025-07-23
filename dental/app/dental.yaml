@@ -1,4 +1,4 @@
-path: C:/Users/602-18/YOLO/dental/data
+path: C:/Users/602-17/YOLO/dental/data
 
 train: images/train
 val: images/val
