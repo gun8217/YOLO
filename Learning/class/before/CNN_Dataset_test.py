@@ -29,8 +29,8 @@ label_map = {'BAD': 0, 'GOOD': 1}
 class_names = list(label_map.keys())
 
 # path 선언
-data_path = "C:/Users/602-18/YOLO/Learning/class/before/dataset/carrot"
-dest_root = "C:/Users/602-18/YOLO/Learning/class/before/dataset_split/carrot"
+data_path = "C:/Users/602-17/YOLO/Learning/class/before/dataset/carrot"
+dest_root = "C:/Users/602-17/YOLO/Learning/class/before/dataset_split/carrot"
 train_dir = os.path.join(dest_root, "train")
 val_dir = os.path.join(dest_root, "val")
 
