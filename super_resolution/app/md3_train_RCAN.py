@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     # ────────────────────────────────
     # 설정 로딩
-    with open("C:/Users/602-18/YOLO/super_resolution/app/config.yml", "r") as f:
+    with open("C:/Users/602-17/YOLO/super_resolution/app/config.yml", "r") as f:
         config = yaml.safe_load(f)
 
     scale = config["scale"]
@@ -35,6 +35,7 @@ if __name__ == "__main__":
     # ────────────────────────────────
     # 장치 설정
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
 
     # ────────────────────────────────
     # 데이터 로더 구성

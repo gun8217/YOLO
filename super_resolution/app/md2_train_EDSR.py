@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     # ───────────────────────
     # 설정 파일 로드
-    with open("C:/Users/602-18/YOLO/super_resolution/app/config.yml", "r") as f:
+    with open("C:/Users/602-17/YOLO/super_resolution/app/config.yml", "r") as f:
         config = yaml.safe_load(f)
 
     # ───────────────────────
