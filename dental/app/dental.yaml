@@ -2,6 +2,7 @@ path: C:/Users/602-17/YOLO/dental/data
 
 train: images/train
 val: images/val
+test: images/test
 
 nc: 2
 names: ['cavity', 'normal']
